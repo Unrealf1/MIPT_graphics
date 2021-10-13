@@ -41,7 +41,7 @@ void main()
   for (int i = 0; i < window_size; ++i) {
 	for (int j = 0; j < window_size; ++j) {
 		int element_number = i * window_size + j;
-		vec3 current_color = vec3(textureLod(colorTex, surf.texCoord + step * vec2(i, j) - halfsize, 0));
+		vec3 current_color = vec3(textureLod(colorTex, surf.texCoord + step * (vec2(i, j) - halfsize), 0));
 		float current_brightness = calc_brightness(current_color);
 		
 		for (int ii = 0; ii <= element_number; ++ii) {
