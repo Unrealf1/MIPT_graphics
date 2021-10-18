@@ -69,7 +69,7 @@ void SimpleRender::InitPresentation(VkSurfaceKHR &a_surface)
   m_surface = a_surface;
 
   m_presentationResources.queue = m_swapchain.CreateSwapChain(m_physicalDevice, m_device, m_surface,
-                                                              m_width, m_height, m_vsync);
+                                                              m_width, m_height, m_framesInFlight, m_vsync);
   m_presentationResources.currentFrame = 0;
 
   VkSemaphoreCreateInfo semaphoreInfo = {};
@@ -304,8 +304,9 @@ void SimpleRender::RecreateSwapChain()
   vkDeviceWaitIdle(m_device);
 
   CleanupPipelineAndSwapchain();
+  auto oldImagesNum = m_swapchain.GetImageCount();
   m_presentationResources.queue = m_swapchain.CreateSwapChain(m_physicalDevice, m_device, m_surface, m_width, m_height,
-                                                              m_vsync);
+    oldImagesNum, m_vsync);
 
   std::vector<VkFormat> depthFormats = {
       VK_FORMAT_D32_SFLOAT,
@@ -468,6 +469,13 @@ void SimpleRender::LoadScene(const char* path, bool transpose_inst_matrices)
   CreateUniformBuffer();
   SetupSimplePipeline();
 
+  auto loadedCam = m_pScnMgr->GetCamera(0);
+  m_cam.fov = loadedCam.fov;
+  m_cam.pos = float3(loadedCam.pos);
+  m_cam.up  = float3(loadedCam.up);
+  m_cam.lookAt = float3(loadedCam.lookAt);
+  m_cam.tdist  = loadedCam.farPlane;
+
   UpdateView();
 
   for (size_t i = 0; i < m_framesInFlight; ++i)
@@ -485,7 +493,7 @@ void SimpleRender::DrawFrameSimple()
   uint32_t imageIdx;
   m_swapchain.AcquireNextImage(m_presentationResources.imageAvailable, &imageIdx);
 
-  auto currentCmdBuf = m_cmdBuffersDrawMain[imageIdx];
+  auto currentCmdBuf = m_cmdBuffersDrawMain[m_presentationResources.currentFrame];
 
   VkSemaphore waitSemaphores[] = {m_presentationResources.imageAvailable};
   VkPipelineStageFlags waitStages[] = {VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT};
@@ -580,7 +588,7 @@ void SimpleRender::DrawFrameWithGUI()
   uint32_t imageIdx;
   m_swapchain.AcquireNextImage(m_presentationResources.imageAvailable, &imageIdx);
 
-  auto currentCmdBuf = m_cmdBuffersDrawMain[imageIdx];
+  auto currentCmdBuf = m_cmdBuffersDrawMain[m_presentationResources.currentFrame];
 
   VkSemaphore waitSemaphores[] = {m_presentationResources.imageAvailable};
   VkPipelineStageFlags waitStages[] = {VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT};

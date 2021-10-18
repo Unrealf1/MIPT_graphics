@@ -33,6 +33,7 @@ public:
 
   void ProcessInput(const AppInput& input) override;
   void UpdateCamera(const Camera* cams, uint32_t a_camsCount) override;
+  Camera GetCurrentCamera() override {return m_cam;}
   void UpdateView();
 
   void LoadScene(const char *path, bool transpose_inst_matrices) override;
@@ -107,14 +108,14 @@ protected:
 
   // *** GUI
   std::shared_ptr<IRenderGUI> m_pGUIRender;
-  void SetupGUIElements();
+  virtual void SetupGUIElements();
   void DrawFrameWithGUI();
   //
 
   Camera   m_cam;
   uint32_t m_width  = 1024u;
   uint32_t m_height = 1024u;
-  uint32_t m_framesInFlight = 2u;
+  uint32_t m_framesInFlight  = 2u;
   bool m_vsync = false;
 
   VkPhysicalDeviceFeatures m_enabledDeviceFeatures = {};
@@ -134,7 +135,7 @@ protected:
   void BuildCommandBufferSimple(VkCommandBuffer cmdBuff, VkFramebuffer frameBuff,
                                 VkImageView a_targetImageView, VkPipeline a_pipeline);
 
-  void SetupSimplePipeline();
+  virtual void SetupSimplePipeline();
   void CleanupPipelineAndSwapchain();
   void RecreateSwapChain();
 

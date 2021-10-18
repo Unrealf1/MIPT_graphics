@@ -94,7 +94,7 @@ private:
   std::vector<const char*> m_validationLayers;
   std::shared_ptr<vk_utils::ICopyEngine> m_pCopyHelper;
 
-  std::shared_ptr<vk_utils::IQuad>               m_pFSQuad;
+  std::shared_ptr<vk_utils::IQuad> m_pFSQuad;
   VkDescriptorSet       m_quadDS; 
   VkDescriptorSetLayout m_quadDSLayout = nullptr;
  
@@ -106,8 +106,7 @@ private:
   void CreateInstance();
   void CreateDevice(uint32_t a_deviceId);
 
-  void BuildCommandBufferSimple(VkCommandBuffer a_cmdBuff, VkFramebuffer a_frameBuff,
-                                VkImageView a_targetImageView, VkPipeline a_pipeline);
+  void BuildCommandBufferSimple(VkCommandBuffer a_cmdBuff, VkFramebuffer a_frameBuff, VkImageView a_targetImageView);
 
   void SetupSimplePipeline();
   void SetupQuadRenderer();
