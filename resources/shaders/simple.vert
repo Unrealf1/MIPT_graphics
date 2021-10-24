@@ -21,8 +21,20 @@ layout (location = 0 ) out VS_OUT
     vec3 wNorm;
     vec3 wTangent;
     vec2 texCoord;
-
+    vec4 flexColor; // because we are flexing with math!
 } vOut;
+
+vec4 get_flex_color(vec3 position) {
+    return vec4(vec3(1.0, 1.0, 1.0), sin(abs(position.y - position.x)));
+    float F = (sqrt(4) - 1) / 3;
+    vec3 addition = vec3(position.x + position.y + position.z);
+    float transparency = position.z - position.x * position.y;
+    float transparency_mod = exp(1.0 + (1.0 + cos(position.x)) / 2.0);
+    if (position.z > 6.0) {
+        return vec4(sin(abs(position.y - position.x)));
+    }
+    return vec4(vec3(position + F * addition), (1.0 + sin(transparency)) / (transparency_mod));
+}
 
 out gl_PerVertex { vec4 gl_Position; };
 void main(void)
@@ -36,4 +48,6 @@ void main(void)
     vOut.texCoord = vTexCoordAndTang.xy;
 
     gl_Position   = params.mProjView * vec4(vOut.wPos, 1.0);
+
+    vOut.flexColor = get_flex_color(vec3(gl_Position));
 }
