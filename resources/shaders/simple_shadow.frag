@@ -22,6 +22,22 @@ layout(binding = 0, set = 0) uniform AppData
 
 layout (binding = 1) uniform sampler2D shadowMap;
 
+vec4 get_grill_color(vec3 position) {
+    float floored_x = floor(position.x * 10.0) / 10.0;
+    float floored_y = floor(position.y * 10.0) / 10.0;
+    float floored_z = floor(position.z * 10.0) / 10.0;
+    float width = 0.02;
+    if (
+        abs(floored_x - position.x) < width || 
+        abs(floored_y - position.y) < width || 
+        abs(floored_z - position.z) < width
+    ) {
+        return vec4(1.0, 0.0, 0.0, 1.0);
+    } else {
+        return vec4(0.0);
+    }
+}
+
 void main()
 {
   const vec4 posLightClipSpace = Params.lightMatrix*vec4(surf.wPos, 1.0f); // 
@@ -39,6 +55,8 @@ void main()
    
   vec3 lightDir   = normalize(Params.lightPos - surf.wPos);
   vec4 lightColor = max(dot(surf.wNorm, lightDir), 0.0f) * lightColor1;
-  vec4 baseColor = mix(vec4(Params.baseColor, 1.0f), surf.flexColor, surf.flexColor.a);
+  vec4 additional_color = get_grill_color(surf.wPos);
+  //vec4 additional_color = surf.flexColor;
+  vec4 baseColor = mix(vec4(Params.baseColor, 1.0f), additional_color, additional_color.a);
   out_fragColor   = (lightColor*shadow + vec4(0.1f)) * baseColor;
 }

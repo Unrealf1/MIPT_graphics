@@ -24,7 +24,26 @@ layout (location = 0 ) out VS_OUT
     vec4 flexColor; // because we are flexing with math!
 } vOut;
 
+vec4 get_grill_color(vec3 position) {
+    float floored_x = floor(position.x * 10.0) / 10.0;
+    float floored_y = floor(position.y * 10.0) / 10.0;
+    float floored_z = floor(position.z * 10.0) / 10.0;
+    float width = 0.02;
+    if (
+        abs(floored_x - position.x) < width || 
+        abs(floored_y - position.y) < width || 
+        abs(floored_z - position.z) < width
+    ) {
+        return vec4(1.0, 0.0, 0.0, 1.0);
+    } else {
+        return vec4(0.0);
+    }
+}
+
+// experiments with math functions, now not used
+// see get_grill_color instead
 vec4 get_flex_color(vec3 position) {
+    return vec4(vec3(position.z/5.0, 0.0, 0.0), 1.0);
     return vec4(vec3(1.0, 1.0, 1.0), sin(abs(position.y - position.x)));
     float F = (sqrt(4) - 1) / 3;
     vec3 addition = vec3(position.x + position.y + position.z);
@@ -49,5 +68,5 @@ void main(void)
 
     gl_Position   = params.mProjView * vec4(vOut.wPos, 1.0);
 
-    vOut.flexColor = get_flex_color(vec3(gl_Position));
+    vOut.flexColor = get_grill_color(vec3(gl_Position));
 }
