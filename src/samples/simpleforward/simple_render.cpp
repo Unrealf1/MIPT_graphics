@@ -199,7 +199,7 @@ void SimpleRender::UpdateUniformBuffer(float a_time)
 }
 
 void SimpleRender::BuildCommandBufferSimple(VkCommandBuffer a_cmdBuff, VkFramebuffer a_frameBuff,
-                                            VkImageView a_targetImageView, VkPipeline a_pipeline)
+                                            VkImageView, VkPipeline a_pipeline)
 {
   vkResetCommandBuffer(a_cmdBuff, 0);
 
@@ -242,7 +242,7 @@ void SimpleRender::BuildCommandBufferSimple(VkCommandBuffer a_cmdBuff, VkFramebu
     vkCmdBindVertexBuffers(a_cmdBuff, 0, 1, &vertexBuf, &zero_offset);
     vkCmdBindIndexBuffer(a_cmdBuff, indexBuf, 0, VK_INDEX_TYPE_UINT32);
 
-    for (size_t i = 0; i < m_pScnMgr->InstancesNum(); ++i)
+    for (uint32_t i = 0; i < m_pScnMgr->InstancesNum(); ++i)
     {
       auto inst = m_pScnMgr->GetInstanceInfo(i);
 
@@ -272,23 +272,23 @@ void SimpleRender::CleanupPipelineAndSwapchain()
 
   for (size_t i = 0; i < m_frameFences.size(); i++)
   {
-    if(m_frameFences[i] != VK_NULL_HANDLE)
-    {
-      vkDestroyFence(m_device, m_frameFences[i], nullptr);
-      m_frameFences[i] = VK_NULL_HANDLE;
-    }
+    vkDestroyFence(m_device, m_frameFences[i], nullptr);
   }
+  m_frameFences.clear();
 
   vk_utils::deleteImg(m_device, &m_depthBuffer);
+  
+  if(m_depthBuffer.mem != VK_NULL_HANDLE)
+  {
+    vkFreeMemory(m_device, m_depthBuffer.mem, nullptr);
+    m_depthBuffer.mem = VK_NULL_HANDLE;
+  }
 
   for (size_t i = 0; i < m_frameBuffers.size(); i++)
   {
-    if(m_frameBuffers[i] != VK_NULL_HANDLE)
-    {
-      vkDestroyFramebuffer(m_device, m_frameBuffers[i], nullptr);
-      m_frameBuffers[i] = VK_NULL_HANDLE;
-    }
+    vkDestroyFramebuffer(m_device, m_frameBuffers[i], nullptr);
   }
+  m_frameBuffers.clear();
 
   if(m_screenRenderPass != VK_NULL_HANDLE)
   {
@@ -331,12 +331,13 @@ void SimpleRender::RecreateSwapChain()
   }
 
   m_cmdBuffersDrawMain = vk_utils::createCommandBuffers(m_device, m_commandPool, m_framesInFlight);
-  for (size_t i = 0; i < m_swapchain.GetImageCount(); ++i)
+  for (uint32_t i = 0; i < m_swapchain.GetImageCount(); ++i)
   {
     BuildCommandBufferSimple(m_cmdBuffersDrawMain[i], m_frameBuffers[i],
                              m_swapchain.GetAttachment(i).view, m_basicForwardPipeline.pipeline);
   }
 
+  m_pGUIRender->OnSwapchainChanged(m_swapchain);
 }
 
 void SimpleRender::Cleanup()
@@ -390,14 +391,6 @@ void SimpleRender::Cleanup()
     m_uboAlloc = VK_NULL_HANDLE;
   }
 
-//  vk_utils::deleteImg(m_device, &m_depthBuffer); // already deleted with swapchain
-
-  if(m_depthBuffer.mem != VK_NULL_HANDLE)
-  {
-    vkFreeMemory(m_device, m_depthBuffer.mem, nullptr);
-    m_depthBuffer.mem = VK_NULL_HANDLE;
-  }
-
   m_pBindings = nullptr;
   m_pScnMgr   = nullptr;
 
@@ -436,7 +429,7 @@ void SimpleRender::ProcessInput(const AppInput &input)
 
     SetupSimplePipeline();
 
-    for (size_t i = 0; i < m_framesInFlight; ++i)
+    for (uint32_t i = 0; i < m_framesInFlight; ++i)
     {
       BuildCommandBufferSimple(m_cmdBuffersDrawMain[i], m_frameBuffers[i],
                                m_swapchain.GetAttachment(i).view, m_basicForwardPipeline.pipeline);
@@ -478,7 +471,7 @@ void SimpleRender::LoadScene(const char* path, bool transpose_inst_matrices)
 
   UpdateView();
 
-  for (size_t i = 0; i < m_framesInFlight; ++i)
+  for (uint32_t i = 0; i < m_framesInFlight; ++i)
   {
     BuildCommandBufferSimple(m_cmdBuffersDrawMain[i], m_frameBuffers[i],
                              m_swapchain.GetAttachment(i).view, m_basicForwardPipeline.pipeline);
@@ -586,7 +579,16 @@ void SimpleRender::DrawFrameWithGUI()
   vkResetFences(m_device, 1, &m_frameFences[m_presentationResources.currentFrame]);
 
   uint32_t imageIdx;
-  m_swapchain.AcquireNextImage(m_presentationResources.imageAvailable, &imageIdx);
+  auto result = m_swapchain.AcquireNextImage(m_presentationResources.imageAvailable, &imageIdx);
+  if (result == VK_ERROR_OUT_OF_DATE_KHR)
+  {
+    RecreateSwapChain();
+    return;
+  }
+  else if (result != VK_SUCCESS && result != VK_SUBOPTIMAL_KHR)
+  {
+    RUN_TIME_ERROR("Failed to acquire the next swapchain image!");
+  }
 
   auto currentCmdBuf = m_cmdBuffersDrawMain[m_presentationResources.currentFrame];
 
@@ -606,7 +608,7 @@ void SimpleRender::DrawFrameWithGUI()
   submitInfo.waitSemaphoreCount = 1;
   submitInfo.pWaitSemaphores = waitSemaphores;
   submitInfo.pWaitDstStageMask = waitStages;
-  submitInfo.commandBufferCount = submitCmdBufs.size();
+  submitInfo.commandBufferCount = (uint32_t)submitCmdBufs.size();
   submitInfo.pCommandBuffers = submitCmdBufs.data();
 
   VkSemaphore signalSemaphores[] = {m_presentationResources.renderingFinished};
