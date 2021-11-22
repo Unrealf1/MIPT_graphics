@@ -1,0 +1,100 @@
+#version 430
+
+// this shader computes sum tree of one block 
+// and stores sum og the whole block separately
+
+// size of an array to build sum tree for
+const uint block_size = 256;
+const uint load_offset = block_size / 2;
+
+// shared memory where all manipulations with an array
+// would occur
+shared float temp[block_size];
+
+layout( local_size_x = 128 ) in;
+
+layout( push_constant ) uniform params {
+  uint array_size;
+} PushConstant;
+
+layout(std430, binding = 0) buffer in_buf_
+{
+    float in_buf[];
+};
+
+layout(std430, binding = 1) buffer out_buf_
+{
+    float out_buf[];
+};
+
+layout(std430, binding = 2) buffer sums_buf_
+{
+    float sums_buf[];
+};
+
+void perform_on_temp(uint n, uint group_id, uint tid, bool update_sums) {
+    // 2^depth
+    int offset = 1;
+
+    for (uint d = n >> 1; d > 0; d >>= 1) {
+        barrier();
+        if (tid < d) {
+            uint ai = offset * (2 * tid + 1) - 1;
+            uint bi = offset * (2 * tid + 2) - 1;
+            temp[bi] += temp[ai];
+        }
+        offset <<= 1;
+    }
+
+    barrier();
+    if (tid == 0) {
+        if (update_sums) {
+            sums_buf[group_id] = temp[n - 1];
+        }
+        temp[n - 1] = 0;
+    }
+
+    for (uint d = 1; d < n; d <<= 1) {
+        offset >>= 1;
+        barrier();
+        if (tid < d) {
+            uint ai = offset * (2 * tid + 1) - 1;
+            uint bi = offset * (2 * tid + 2) - 1;
+            float t  = temp[ai];
+            temp[ai] = temp[bi];
+            temp[bi] += t;
+        } 
+    }
+}
+
+void main() 
+{
+    uint n = block_size;
+    uint group_id = gl_WorkGroupID.x;
+    uint tid = gl_LocalInvocationID.x;
+    
+    // loading whole array into shared memory
+    uint block_offset = block_size * group_id;
+    temp[tid] = in_buf[tid + block_offset];
+    temp[tid + load_offset] = in_buf[tid + load_offset + block_offset];
+
+    barrier();
+    perform_on_temp(n, group_id, tid, true);
+    barrier();
+
+    // write result of per-block scan to the out buffer
+    out_buf[tid + block_offset] = temp[tid];
+    out_buf[tid + load_offset + block_offset] = temp[tid + load_offset];
+
+    barrier();
+    // one group whould repeat the process on the sums array
+    if (group_id == 0) {
+        temp[tid] = sums_buf[tid + block_offset];
+        temp[tid + load_offset] = sums_buf[tid + load_offset + block_offset];
+        barrier();
+        perform_on_temp(n, group_id, tid, false);
+        barrier();
+        sums_buf[tid] = temp[tid];
+        sums_buf[tid + load_offset] = temp[tid + load_offset];
+    }
+}
