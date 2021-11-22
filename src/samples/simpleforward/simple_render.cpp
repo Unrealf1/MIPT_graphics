@@ -17,6 +17,7 @@ SimpleRender::SimpleRender(uint32_t a_width, uint32_t a_height) : m_width(a_widt
 void SimpleRender::SetupDeviceFeatures()
 {
   // m_enabledDeviceFeatures.fillModeNonSolid = VK_TRUE;
+    m_enabledDeviceFeatures.geometryShader = true;
 }
 
 void SimpleRender::SetupDeviceExtensions()
@@ -150,11 +151,23 @@ void SimpleRender::SetupSimplePipeline()
     m_basicForwardPipeline.pipeline = VK_NULL_HANDLE;
   }
 
+  if (m_basicForwardPipeline2.layout != VK_NULL_HANDLE)
+  {
+      vkDestroyPipelineLayout(m_device, m_basicForwardPipeline2.layout, nullptr);
+      m_basicForwardPipeline2.layout = VK_NULL_HANDLE;
+  }
+  if (m_basicForwardPipeline2.pipeline != VK_NULL_HANDLE)
+  {
+      vkDestroyPipeline(m_device, m_basicForwardPipeline2.pipeline, nullptr);
+      m_basicForwardPipeline2.pipeline = VK_NULL_HANDLE;
+  }
+
   vk_utils::GraphicsPipelineMaker maker;
 
   std::unordered_map<VkShaderStageFlagBits, std::string> shader_paths;
   shader_paths[VK_SHADER_STAGE_FRAGMENT_BIT] = FRAGMENT_SHADER_PATH + ".spv";
   shader_paths[VK_SHADER_STAGE_VERTEX_BIT]   = VERTEX_SHADER_PATH + ".spv";
+  shader_paths[VK_SHADER_STAGE_GEOMETRY_BIT] = GEOMETRY_SHADER_PATH + ".spv";
 
   maker.LoadShaders(m_device, shader_paths);
 
@@ -163,6 +176,20 @@ void SimpleRender::SetupSimplePipeline()
 
   m_basicForwardPipeline.pipeline = maker.MakePipeline(m_device, m_pScnMgr->GetPipelineVertexInputStateCreateInfo(),
                                                        m_screenRenderPass, {VK_DYNAMIC_STATE_VIEWPORT, VK_DYNAMIC_STATE_SCISSOR});
+
+  vk_utils::GraphicsPipelineMaker maker2;
+
+  std::unordered_map<VkShaderStageFlagBits, std::string> shader_paths2;
+  shader_paths2[VK_SHADER_STAGE_FRAGMENT_BIT] = FRAGMENT_SHADER_PATH + ".spv";
+  shader_paths2[VK_SHADER_STAGE_VERTEX_BIT] = VERTEX_SHADER_PATH + ".spv";
+
+  maker2.LoadShaders(m_device, shader_paths2);
+
+  m_basicForwardPipeline2.layout = maker2.MakeLayout(m_device, { m_dSetLayout }, sizeof(pushConst2M));
+  maker2.SetDefaultState(m_width, m_height);
+
+  m_basicForwardPipeline2.pipeline = maker2.MakePipeline(m_device, m_pScnMgr->GetPipelineVertexInputStateCreateInfo(),
+      m_screenRenderPass, { VK_DYNAMIC_STATE_VIEWPORT, VK_DYNAMIC_STATE_SCISSOR });
 }
 
 void SimpleRender::CreateUniformBuffer()
@@ -233,7 +260,7 @@ void SimpleRender::BuildCommandBufferSimple(VkCommandBuffer a_cmdBuff, VkFramebu
     vkCmdBindDescriptorSets(a_cmdBuff, VK_PIPELINE_BIND_POINT_GRAPHICS, m_basicForwardPipeline.layout, 0, 1,
                             &m_dSet, 0, VK_NULL_HANDLE);
 
-    VkShaderStageFlags stageFlags = (VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT);
+    VkShaderStageFlags stageFlags = (VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT | VK_SHADER_STAGE_GEOMETRY_BIT);
 
     VkDeviceSize zero_offset = 0u;
     VkBuffer vertexBuf = m_pScnMgr->GetVertexBuffer();
@@ -252,6 +279,21 @@ void SimpleRender::BuildCommandBufferSimple(VkCommandBuffer a_cmdBuff, VkFramebu
 
       auto mesh_info = m_pScnMgr->GetMeshInfo(inst.mesh_id);
       vkCmdDrawIndexed(a_cmdBuff, mesh_info.m_indNum, 1, mesh_info.m_indexOffset, mesh_info.m_vertexOffset, 0);
+    }
+    stageFlags = (VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT);
+    vkCmdBindPipeline(a_cmdBuff, VK_PIPELINE_BIND_POINT_GRAPHICS, m_basicForwardPipeline2.pipeline);
+    vkCmdBindDescriptorSets(a_cmdBuff, VK_PIPELINE_BIND_POINT_GRAPHICS, m_basicForwardPipeline2.layout, 0, 1,
+        &m_dSet, 0, VK_NULL_HANDLE);
+    for (uint32_t i = 0; i < m_pScnMgr->InstancesNum(); ++i)
+    {
+        auto inst = m_pScnMgr->GetInstanceInfo(i);
+
+        pushConst2M.model = m_pScnMgr->GetInstanceMatrix(i);
+        vkCmdPushConstants(a_cmdBuff, m_basicForwardPipeline2.layout, stageFlags, 0,
+            sizeof(pushConst2M), &pushConst2M);
+
+        auto mesh_info = m_pScnMgr->GetMeshInfo(inst.mesh_id);
+        vkCmdDrawIndexed(a_cmdBuff, mesh_info.m_indNum, 1, mesh_info.m_indexOffset, mesh_info.m_vertexOffset, 0);
     }
 
     vkCmdEndRenderPass(a_cmdBuff);
@@ -360,6 +402,17 @@ void SimpleRender::Cleanup()
   {
     vkDestroyPipelineLayout(m_device, m_basicForwardPipeline.layout, nullptr);
     m_basicForwardPipeline.layout = VK_NULL_HANDLE;
+  }
+
+  if (m_basicForwardPipeline2.pipeline != VK_NULL_HANDLE)
+  {
+      vkDestroyPipeline(m_device, m_basicForwardPipeline2.pipeline, nullptr);
+      m_basicForwardPipeline2.pipeline = VK_NULL_HANDLE;
+  }
+  if (m_basicForwardPipeline2.layout != VK_NULL_HANDLE)
+  {
+      vkDestroyPipelineLayout(m_device, m_basicForwardPipeline2.layout, nullptr);
+      m_basicForwardPipeline2.layout = VK_NULL_HANDLE;
   }
 
   if (m_presentationResources.imageAvailable != VK_NULL_HANDLE)

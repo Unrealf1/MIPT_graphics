@@ -14,6 +14,9 @@ std::unique_ptr<IRender> CreateRender(uint32_t w, uint32_t h, RenderEngineType t
   case RenderEngineType::SIMPLE_TEXTURE:
     return std::make_unique<SimpleRenderTexture>(w, h);
 
+  case RenderEngineType::SIMPLE_GEOM:
+      return std::make_unique<SimpleRender>(w, h);
+
   default:
     return nullptr;
   }
