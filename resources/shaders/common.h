@@ -28,4 +28,14 @@ struct UniformParams
   bool animateLightColor;
 };
 
+struct CustomUniformParams {
+  mat4  lightMatrix;
+  vec3  lightPos;
+  float time;
+  vec3  baseColor;
+  bool animateLightColor;
+  vec3 lightDir;
+  float spread;
+};
+
 #endif //VK_GRAPHICS_BASIC_COMMON_H

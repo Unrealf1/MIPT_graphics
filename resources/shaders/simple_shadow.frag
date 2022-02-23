@@ -16,7 +16,7 @@ layout (location = 0 ) in VS_OUT
 
 layout(binding = 0, set = 0) uniform AppData
 {
-  UniformParams Params;
+  CustomUniformParams Params;
 };
 
 layout (binding = 1) uniform sampler2D shadowMap;
@@ -36,7 +36,14 @@ void main()
   vec4 lightColor1 = mix(dark_violet, chartreuse, abs(sin(Params.time)));
   vec4 lightColor2 = vec4(1.0f, 1.0f, 1.0f, 1.0f);
    
-  vec3 lightDir   = normalize(Params.lightPos - surf.wPos);
-  vec4 lightColor = max(dot(surf.wNorm, lightDir), 0.0f) * lightColor1;
-  out_fragColor   = (lightColor*shadow + vec4(0.1f)) * vec4(Params.baseColor, 1.0f);
+  vec3 dir_to_light   = normalize(Params.lightPos - surf.wPos);
+  float light_cos = dot(-dir_to_light, normalize(Params.lightDir));
+  float angle = acos(light_cos);
+  if (angle > Params.spread) {
+    out_fragColor = vec4(0.0);
+    return;
+  }
+  float dimming = 1.0 - angle/Params.spread;
+  vec4 lightColor = max(dot(surf.wNorm, dir_to_light), 0.0f) * lightColor1;
+  out_fragColor   = dimming * (lightColor*shadow + vec4(0.1f)) * vec4(Params.baseColor, 1.0f);
 }

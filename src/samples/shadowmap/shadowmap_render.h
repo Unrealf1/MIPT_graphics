@@ -15,6 +15,8 @@
 #include <string>
 #include <iostream>
 
+
+
 class SimpleShadowmapRender : public IRender
 {
 public:
@@ -92,7 +94,7 @@ private:
   float4x4 m_worldViewProj;
   float4x4 m_lightMatrix;    
 
-  UniformParams m_uniforms {};
+  CustomUniformParams m_uniforms {};
   VkBuffer m_ubo = VK_NULL_HANDLE;
   VkDeviceMemory m_uboAlloc = VK_NULL_HANDLE;
   void* m_uboMappedMem = nullptr;

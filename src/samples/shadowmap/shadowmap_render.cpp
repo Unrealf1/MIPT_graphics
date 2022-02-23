@@ -5,6 +5,8 @@
 #include <vk_pipeline.h>
 #include <vk_buffers.h>
 
+#include <numbers>
+
 SimpleShadowmapRender::SimpleShadowmapRender(uint32_t a_width, uint32_t a_height) : m_width(a_width), m_height(a_height)
 {
 #ifdef NDEBUG
@@ -231,7 +233,7 @@ void SimpleShadowmapRender::SetupSimplePipeline()
 void SimpleShadowmapRender::CreateUniformBuffer()
 {
   VkMemoryRequirements memReq;
-  m_ubo = vk_utils::createBuffer(m_device, sizeof(UniformParams), VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, &memReq);
+  m_ubo = vk_utils::createBuffer(m_device, sizeof(CustomUniformParams), VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, &memReq);
 
   VkMemoryAllocateInfo allocateInfo = {};
   allocateInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
@@ -251,9 +253,15 @@ void SimpleShadowmapRender::CreateUniformBuffer()
 
 void SimpleShadowmapRender::UpdateUniformBuffer(float a_time)
 {
+  //offset, so some shadows are visible
+  m_light.cam.pos = m_cam.pos - vec3(0.0, 0.5, 0.0);
+  UpdateView(); 
   m_uniforms.lightMatrix = m_lightMatrix;
   m_uniforms.lightPos    = m_light.cam.pos; //LiteMath::float3(sinf(a_time), 1.0f, cosf(a_time));
   m_uniforms.time        = a_time;
+  m_uniforms.lightDir    = m_light.cam.forward();
+  m_uniforms.lightDir    = m_cam.forward();
+  m_uniforms.spread      = std::numbers::pi_v<float> / 12.0f;
 
   m_uniforms.baseColor = LiteMath::float3(0.9f, 0.92f, 1.0f);
   memcpy(m_uboMappedMem, &m_uniforms, sizeof(m_uniforms));
