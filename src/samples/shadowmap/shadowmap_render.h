@@ -102,10 +102,14 @@ private:
 
   pipeline_data_t m_basicForwardPipeline {};
   pipeline_data_t m_shadowPipeline {};
+  pipeline_data_t m_shadowAdditionalPipeline {};
 
   VkDescriptorSet m_dSet = VK_NULL_HANDLE;
   VkDescriptorSetLayout m_dSetLayout = VK_NULL_HANDLE;
   VkRenderPass m_screenRenderPass = VK_NULL_HANDLE; // main renderpass
+
+  VkDescriptorSet m_shadowAdditionalDescSet = VK_NULL_HANDLE;
+  VkDescriptorSetLayout m_shadowAdditionalDescSetLayout = VK_NULL_HANDLE;
 
   std::shared_ptr<vk_utils::DescriptorMaker> m_pBindings = nullptr;
 
@@ -119,6 +123,7 @@ private:
   uint32_t m_height = 1024u;
   uint32_t m_framesInFlight = 2u;
   bool m_vsync = false;
+  bool m_use_vsm = false;
 
   VkPhysicalDeviceFeatures m_enabledDeviceFeatures = {};
   std::vector<const char*> m_deviceExtensions      = {};
@@ -134,9 +139,12 @@ private:
   std::shared_ptr<vk_utils::IQuad>               m_pFSQuad;
   //std::shared_ptr<vk_utils::RenderableTexture2D> m_pShadowMap;
   std::shared_ptr<vk_utils::RenderTarget>        m_pShadowMap2;
+  std::shared_ptr<vk_utils::RenderTarget>        m_pShadowMapAdditional;
   uint32_t                                       m_shadowMapId = 0;
+  uint32_t                                       m_shadowMapAdditionalId = 0;
   
   VkDeviceMemory        m_memShadowMap = VK_NULL_HANDLE;
+  VkDeviceMemory        m_memShadowMapAdditional = VK_NULL_HANDLE;
   VkDescriptorSet       m_quadDS; 
   VkDescriptorSetLayout m_quadDSLayout = nullptr;
 
@@ -191,7 +199,7 @@ private:
   void SetupDeviceExtensions();
   void SetupValidationLayers();
   std::shared_ptr<IRenderGUI> m_pGUIRender;
-  float m_flashlight_offset = 0.5f;
+  vec3 m_flashlight_offset{0.0f, 0.5f, 0.0f};
   void SetupGUIElements();
   void DrawFrameWithGUI();
 };
