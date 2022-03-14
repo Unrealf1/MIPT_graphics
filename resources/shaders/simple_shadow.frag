@@ -46,4 +46,7 @@ void main()
   float dimming = 1.0 - angle/Params.spread;
   vec4 lightColor = max(dot(surf.wNorm, dir_to_light), 0.0f) * lightColor1;
   out_fragColor   = dimming * (lightColor*shadow + vec4(0.1f)) * vec4(Params.baseColor, 1.0f);
+  if (Params.use_variance == 1) {
+    out_fragColor = vec4(0, 1, 0, 1);
+  }
 }

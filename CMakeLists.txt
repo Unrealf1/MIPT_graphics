@@ -20,6 +20,9 @@ add_library(project_warnings INTERFACE)
 include(cmake/CompilerWarnings.cmake)
 set_project_warnings(project_warnings)
 
+include(cmake/Sanitizers.cmake)
+enable_sanitizers(project_options)
+
 if(CMAKE_SYSTEM_NAME STREQUAL Windows)
   set(VOLK_STATIC_DEFINES VK_USE_PLATFORM_WIN32_KHR)
 elseif(CMAKE_SYSTEM_NAME STREQUAL Linux)

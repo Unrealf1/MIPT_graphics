@@ -36,6 +36,7 @@ struct CustomUniformParams {
   bool animateLightColor;
   vec3 lightDir;
   float spread;
+  int use_variance;
 };
 
 #endif //VK_GRAPHICS_BASIC_COMMON_H

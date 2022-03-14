@@ -4,6 +4,7 @@
 #define VK_NO_PROTOTYPES
 #include "../../render/scene_mgr.h"
 #include "../../render/render_common.h"
+#include "../../render/render_gui.h"
 #include "../../../resources/shaders/common.h"
 #include <geom/vk_mesh.h>
 #include <vk_descriptor_sets.h>
@@ -189,6 +190,10 @@ private:
   void SetupDeviceFeatures();
   void SetupDeviceExtensions();
   void SetupValidationLayers();
+  std::shared_ptr<IRenderGUI> m_pGUIRender;
+  float m_flashlight_offset = 0.5f;
+  void SetupGUIElements();
+  void DrawFrameWithGUI();
 };
 
 
