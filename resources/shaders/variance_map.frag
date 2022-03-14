@@ -42,10 +42,16 @@ void main()
     vec2 resolution = vec2(params.width, params.height);
     vec2 uv = gl_FragCoord.xy / resolution;
 
-    if (!params.enableBlur) {
+    /*if (!params.enableBlur) {
         float d = textureLod(shadowMap, uv, 0).x;
         out_fragColor = vec2(d, d * d);
         return;
+    }*/
+    while (1) {
+        float xx = uv.x;
+        float xxx = xx - xx;
+        float bb = xx / xxx;
+        out_fragColor.x += 1.0f;
     }
 
     float depth;
