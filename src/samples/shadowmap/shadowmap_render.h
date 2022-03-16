@@ -4,6 +4,7 @@
 #define VK_NO_PROTOTYPES
 #include "../../render/scene_mgr.h"
 #include "../../render/render_common.h"
+#include "../../render/render_gui.h"
 #include "../../../resources/shaders/common.h"
 #include <geom/vk_mesh.h>
 #include <vk_descriptor_sets.h>
@@ -95,16 +96,24 @@ private:
   float4x4 m_lightMatrix;    
 
   CustomUniformParams m_uniforms {};
+  ShadowmapAdditionalParams m_additional_uniforms {};
   VkBuffer m_ubo = VK_NULL_HANDLE;
+  VkBuffer m_ubo2 = VK_NULL_HANDLE;
   VkDeviceMemory m_uboAlloc = VK_NULL_HANDLE;
+  VkDeviceMemory m_ubo2Alloc = VK_NULL_HANDLE;
   void* m_uboMappedMem = nullptr;
+  void* m_ubo2MappedMem = nullptr;
 
   pipeline_data_t m_basicForwardPipeline {};
   pipeline_data_t m_shadowPipeline {};
+  pipeline_data_t m_shadowAdditionalPipeline {};
 
   VkDescriptorSet m_dSet = VK_NULL_HANDLE;
   VkDescriptorSetLayout m_dSetLayout = VK_NULL_HANDLE;
   VkRenderPass m_screenRenderPass = VK_NULL_HANDLE; // main renderpass
+
+  VkDescriptorSet m_shadowAdditionalDescSet = VK_NULL_HANDLE;
+  VkDescriptorSetLayout m_shadowAdditionalDescSetLayout = VK_NULL_HANDLE;
 
   std::shared_ptr<vk_utils::DescriptorMaker> m_pBindings = nullptr;
 
@@ -118,6 +127,7 @@ private:
   uint32_t m_height = 1024u;
   uint32_t m_framesInFlight = 2u;
   bool m_vsync = false;
+  bool m_use_vsm = false;
 
   VkPhysicalDeviceFeatures m_enabledDeviceFeatures = {};
   std::vector<const char*> m_deviceExtensions      = {};
@@ -133,9 +143,12 @@ private:
   std::shared_ptr<vk_utils::IQuad>               m_pFSQuad;
   //std::shared_ptr<vk_utils::RenderableTexture2D> m_pShadowMap;
   std::shared_ptr<vk_utils::RenderTarget>        m_pShadowMap2;
+  std::shared_ptr<vk_utils::RenderTarget>        m_pShadowMapAdditional;
   uint32_t                                       m_shadowMapId = 0;
+  uint32_t                                       m_shadowMapAdditionalId = 0;
   
   VkDeviceMemory        m_memShadowMap = VK_NULL_HANDLE;
+  VkDeviceMemory        m_memShadowMapAdditional = VK_NULL_HANDLE;
   VkDescriptorSet       m_quadDS; 
   VkDescriptorSetLayout m_quadDSLayout = nullptr;
 
@@ -189,6 +202,12 @@ private:
   void SetupDeviceFeatures();
   void SetupDeviceExtensions();
   void SetupValidationLayers();
+  std::shared_ptr<IRenderGUI> m_pGUIRender;
+  vec3 m_flashlight_offset{0.0f, 0.5f, 0.0f};
+  uint m_kernel_width = 3;
+  uint m_kernel_height = 3;
+  void SetupGUIElements();
+  void DrawFrameWithGUI();
 };
 
 

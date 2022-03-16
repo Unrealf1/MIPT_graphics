@@ -38,12 +38,13 @@ int main()
   }
 
   auto* window = initWindow(WIDTH, HEIGHT);
+  setupImGuiContext(window);
 
   initVulkanGLFW(app, window, VULKAN_DEVICE_ID);
 
   app->LoadScene("../resources/scenes/043_cornell_normals/statex_00001.xml", false);
-
-  mainLoop(app, window);
+    
+  mainLoop(app, window, true);
 
   return 0;
 }

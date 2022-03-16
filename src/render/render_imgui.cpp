@@ -2,6 +2,8 @@
 #include <vk_utils.h>
 #include <vk_descriptor_sets.h>
 
+#include <iostream>
+
 
 ImGuiRender::ImGuiRender(VkInstance a_instance, VkDevice a_device, VkPhysicalDevice a_physDevice, uint32_t a_queueFID, VkQueue a_queue,
   const VulkanSwapChain &a_swapchain) : m_instance(a_instance), m_device(a_device), m_physDevice(a_physDevice),
@@ -59,6 +61,8 @@ void ImGuiRender::InitImGui()
   g_instance = m_instance;
 
   ImGui_ImplVulkan_LoadFunctions(vulkanLoaderFunction);
+  //ImGui::CreateContext();
+  //std::cout << "M_RENDERPASS: " << m_renderpass << std::endl;
   ImGui_ImplVulkan_Init(&init_info, m_renderpass);
 
   // Upload GUI fonts texture
