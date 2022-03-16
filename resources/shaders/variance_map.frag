@@ -4,59 +4,39 @@
 
 #include "common.h"
 
-layout(location = 0) out vec2 out_fragColor;
+layout (location = 0) out vec2 out_fragColor;
 layout (binding = 0) uniform sampler2D shadowMap;
 
-layout(push_constant) uniform params_t
+layout(binding = 3) uniform AppData
 {
-    uint width;
-    uint height;
-    bool enableBlur;
-} params;
+  ShadowmapAdditionalParams Params;
+};
 
-void filter_mean(vec2 point, vec2 win_dims, out float x, out float x_2) {
-    /*
+void filter_mean(vec2 point, vec2 win_dims, float step, out float x, out float x_2) {
     float result = 0;
     float square = 0;
 
     vec2 halfdims = win_dims / 2.0;
+    vec2 tex_dims = vec2(textureSize(shadowMap, 0));
 
-    for (float i = point.x - halfdims.x; i <= halfdims.x; i += 1.0) {
-        for (float j = point.y - halfdims.y; j <= halfdims.y; j += 1.0) {
-            float current = textureLod(shadowMap, vec2(i, j) / resolution, 0).x;
-            result += t;
-            square += t*t;
+    for (float i = point.x - halfdims.x; i <= point.x + halfdims.x; i += step) {
+        for (float j = point.y - halfdims.y; j <= point.y + halfdims.y; j += step) {
+            float current = textureLod(shadowMap, vec2(i, j) / tex_dims, 0).x;
+            result += current;
+            square += current * current;
         }
     }
-    x = result;
-    x_w = square;       
-    */
-}
-
-void filter_gauss(vec2 point, vec2 win_dims, out float x, out float x_2) {
-    //TODO
+    float n = (win_dims.x + 1) * (win_dims.x + 1);
+    x = result / n;
+    x_2 = square / n;       
 }
 
 void main()
 {
-    vec2 resolution = vec2(params.width, params.height);
-    vec2 uv = gl_FragCoord.xy / resolution;
-
-    /*if (!params.enableBlur) {
-        float d = textureLod(shadowMap, uv, 0).x;
-        out_fragColor = vec2(d, d * d);
-        return;
-    }*/
-    while (1) {
-        float xx = uv.x;
-        float xxx = xx - xx;
-        float bb = xx / xxx;
-        out_fragColor.x += 1.0f;
-    }
-
     float depth;
     float square;
-    filter_mean(uv, vec2(3, 3), depth, square);
-    out_fragColor = vec2(0, 0); // vec2(res1 / 49, res2 / 49);
+
+    filter_mean(gl_FragCoord.xy, Params.kernel_dims, 1.0,  depth, square);
+    out_fragColor = vec2(depth, square); 
 } 
 

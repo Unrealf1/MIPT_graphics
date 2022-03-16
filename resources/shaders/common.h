@@ -39,4 +39,10 @@ struct CustomUniformParams {
   int use_variance;
 };
 
+struct ShadowmapAdditionalParams {
+    uint width;
+    uint height;
+    vec2 kernel_dims;
+};
+
 #endif //VK_GRAPHICS_BASIC_COMMON_H

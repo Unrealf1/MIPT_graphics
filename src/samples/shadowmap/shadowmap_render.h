@@ -96,9 +96,13 @@ private:
   float4x4 m_lightMatrix;    
 
   CustomUniformParams m_uniforms {};
+  ShadowmapAdditionalParams m_additional_uniforms {};
   VkBuffer m_ubo = VK_NULL_HANDLE;
+  VkBuffer m_ubo2 = VK_NULL_HANDLE;
   VkDeviceMemory m_uboAlloc = VK_NULL_HANDLE;
+  VkDeviceMemory m_ubo2Alloc = VK_NULL_HANDLE;
   void* m_uboMappedMem = nullptr;
+  void* m_ubo2MappedMem = nullptr;
 
   pipeline_data_t m_basicForwardPipeline {};
   pipeline_data_t m_shadowPipeline {};
@@ -200,6 +204,8 @@ private:
   void SetupValidationLayers();
   std::shared_ptr<IRenderGUI> m_pGUIRender;
   vec3 m_flashlight_offset{0.0f, 0.5f, 0.0f};
+  uint m_kernel_width = 3;
+  uint m_kernel_height = 3;
   void SetupGUIElements();
   void DrawFrameWithGUI();
 };

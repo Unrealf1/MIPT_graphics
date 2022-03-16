@@ -203,10 +203,9 @@ void SimpleShadowmapRender::SetupSimplePipeline()
   m_pBindings->BindImage (2, shadowMapAdditional.view, m_pShadowMapAdditional->m_sampler, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER);
   m_pBindings->BindEnd(&m_dSet, &m_dSetLayout);
 
-  //m_pBindings->BindImage(0, m_GBufTarget->m_attachments[m_GBuf_idx[GBUF_ATTACHMENT::POS_Z]].view, m_GBufTarget->m_sampler, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER);
-
   m_pBindings->BindBegin(VK_SHADER_STAGE_FRAGMENT_BIT);
   m_pBindings->BindImage(0, shadowMap.view, m_pShadowMap2->m_sampler, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER);
+  m_pBindings->BindBuffer(3, m_ubo2, VK_NULL_HANDLE, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER);
   m_pBindings->BindEnd(&m_shadowAdditionalDescSet, &m_shadowAdditionalDescSetLayout);
   /*m_pBindings->BindBegin(VK_SHADER_STAGE_FRAGMENT_BIT);
   m_pBindings->BindImage(0, shadowMap.view, m_pShadowMap2->m_sampler, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER);
@@ -303,6 +302,22 @@ void SimpleShadowmapRender::CreateUniformBuffer()
 
   vkMapMemory(m_device, m_uboAlloc, 0, sizeof(m_uniforms), 0, &m_uboMappedMem);
 
+  VkMemoryRequirements memReq2;
+  m_ubo2 = vk_utils::createBuffer(m_device, sizeof(ShadowmapAdditionalParams), VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, &memReq2);
+
+  VkMemoryAllocateInfo allocateInfo2 = {};
+  allocateInfo2.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
+  allocateInfo2.pNext = nullptr;
+  allocateInfo2.allocationSize = memReq2.size;
+  allocateInfo2.memoryTypeIndex = vk_utils::findMemoryType(memReq2.memoryTypeBits,
+                                                          VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT |
+                                                          VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
+                                                          m_physicalDevice);
+  VK_CHECK_RESULT(vkAllocateMemory(m_device, &allocateInfo2, nullptr, &m_ubo2Alloc));
+  VK_CHECK_RESULT(vkBindBufferMemory(m_device, m_ubo2, m_ubo2Alloc, 0));
+
+  vkMapMemory(m_device, m_ubo2Alloc, 0, sizeof(m_additional_uniforms), 0, &m_ubo2MappedMem);
+
   UpdateUniformBuffer(0.0f);
 }
 
@@ -320,6 +335,12 @@ void SimpleShadowmapRender::SetupGUIElements()
     m_flashlight_offset.x = xyz[0];
     m_flashlight_offset.y = xyz[1];
     m_flashlight_offset.z = xyz[2];
+    if (m_use_vsm) {
+        std::array<int, 1> ints = { int(m_kernel_width) };
+        ImGui::SliderInt("Filter kernel dims", ints.data(), 1, 10);
+        m_kernel_width = ints[0];
+        m_kernel_height = ints[0];
+    }
     ImGui::Text("Application average %.3f ms/frame (%.1f FPS)", 1000.0f / ImGui::GetIO().Framerate, ImGui::GetIO().Framerate);
     ImGui::NewLine();
     ImGui::End();
@@ -342,8 +363,11 @@ void SimpleShadowmapRender::UpdateUniformBuffer(float a_time)
   m_uniforms.spread      = std::numbers::pi_v<float> / 12.0f;
   m_uniforms.use_variance = m_use_vsm;
 
+  m_additional_uniforms.kernel_dims = { float(m_kernel_width), float(m_kernel_height) };
+
   m_uniforms.baseColor = LiteMath::float3(0.9f, 0.92f, 1.0f);
   memcpy(m_uboMappedMem, &m_uniforms, sizeof(m_uniforms));
+  memcpy(m_ubo2MappedMem, &m_additional_uniforms, sizeof(m_additional_uniforms));
 }
 
 void SimpleShadowmapRender::DrawSceneCmd(VkCommandBuffer a_cmdBuff, const float4x4& a_wvp)
@@ -405,6 +429,16 @@ void SimpleShadowmapRender::BuildCommandBufferSimple(VkCommandBuffer a_cmdBuff, 
   clearDepth.depthStencil.depth   = 1.0f;
   clearDepth.depthStencil.stencil = 0;
   std::vector<VkClearValue> clear =  {clearDepth};
+  VkRenderPassBeginInfo renderToVsmTexture = m_pShadowMapAdditional->GetRenderPassBeginInfo(0, clear);
+
+  vkCmdBeginRenderPass(a_cmdBuff, &renderToVsmTexture, VK_SUBPASS_CONTENTS_INLINE);
+  {
+    vkCmdBindPipeline(a_cmdBuff, VK_PIPELINE_BIND_POINT_GRAPHICS, m_shadowAdditionalPipeline.pipeline);
+    vkCmdBindDescriptorSets(a_cmdBuff, VK_PIPELINE_BIND_POINT_GRAPHICS, m_shadowAdditionalPipeline.layout, 0, 1, &m_shadowAdditionalDescSet, 0, VK_NULL_HANDLE);
+    vkCmdDraw(a_cmdBuff, 3, 1, 0, 0);
+  }
+
+  vkCmdEndRenderPass(a_cmdBuff);
   VkRenderPassBeginInfo renderToShadowMap = m_pShadowMap2->GetRenderPassBeginInfo(0, clear);
   vkCmdBeginRenderPass(a_cmdBuff, &renderToShadowMap, VK_SUBPASS_CONTENTS_INLINE);
   {
@@ -413,17 +447,6 @@ void SimpleShadowmapRender::BuildCommandBufferSimple(VkCommandBuffer a_cmdBuff, 
   }
   vkCmdEndRenderPass(a_cmdBuff);
   
-  if (clear.empty()) {
-    std::cout << "\n\n\nHorrible mistake was made\n\n\n";
-  }
-  VkRenderPassBeginInfo renderToVsmTexture = m_pShadowMapAdditional->GetRenderPassBeginInfo(0, clear);
-  vkCmdBeginRenderPass(a_cmdBuff, &renderToVsmTexture, VK_SUBPASS_CONTENTS_INLINE);
-  {
-    vkCmdBindPipeline(a_cmdBuff, VK_PIPELINE_BIND_POINT_GRAPHICS, m_shadowAdditionalPipeline.pipeline);
-    vkCmdBindDescriptorSets(a_cmdBuff, VK_PIPELINE_BIND_POINT_GRAPHICS, m_shadowAdditionalPipeline.layout, 0, 1, &m_shadowAdditionalDescSet, 0, VK_NULL_HANDLE);
-    vkCmdDraw(a_cmdBuff, 3, 1, 0, 0);
-  }
-  vkCmdEndRenderPass(a_cmdBuff);
 
 
   //// draw final scene to screen
