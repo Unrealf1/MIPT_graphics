@@ -60,7 +60,7 @@ void main()
     mat4 normalModelView = transpose(inverse(modelView));
 
     vOut.cNorm = normalize(mat3(normalModelView) * mNorm);
-    vOut.texCoord = mPos2;
+    vOut.texCoord = mPos2 / Params.landscape_length;
 
     gl_Position = params.mProj * modelView * vec4(mPos, 1);
 }

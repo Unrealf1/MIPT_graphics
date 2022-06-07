@@ -19,8 +19,8 @@ SimpleRender::SimpleRender(uint32_t a_width, uint32_t a_height) : m_width(a_widt
 
   m_noise.SetNoiseType(FastNoiseLite::NoiseType_Perlin);
   m_noise.SetNoiseType(FastNoiseLite::NoiseType_OpenSimplex2);
-  m_noise.SetFractalOctaves(1);
-  m_noise.SetFrequency(1/100.0f);
+  m_noise.SetFractalOctaves(2);
+  m_noise.SetFrequency(1.0f/m_noise_length / 2.0f);
   m_noise.SetSeed(117);
 
 }
@@ -791,7 +791,7 @@ void SimpleRender::SetupHeightmapTexture() {
 
     float x = 0.0f + noise_step * float(ix);
     float y = 0.0f + noise_step * float(iy);
-    float value = y / 2.0f;//m_noise.GetNoise(x, y);
+    float value = m_noise.GetNoise(x, y);//(y + x) / 2.0f / m_noise_length;//m_noise.GetNoise(x, y);
     uint32_t discrete_value = 255 * value;
     m_heightmap.push_back(discrete_value);
   }

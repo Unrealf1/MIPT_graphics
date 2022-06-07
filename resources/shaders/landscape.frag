@@ -23,7 +23,7 @@ void main()
 {
     fragColor = vec4(1.0, 0, 0, 1.0);
     fragColor = vec4(surf.sNorm, 1.0);
-    fragColor = vec4(texture(heightmap, surf.texCoord / Params.landscape_length).r);
+    fragColor = vec4(texture(heightmap, surf.texCoord).r);
 }
 
 
