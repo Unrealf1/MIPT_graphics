@@ -15,11 +15,16 @@
 #include <string>
 #include <iostream>
 
+#include "FastNoiseLite.h"
+
+
 class SimpleRender : public IRender
 {
 public:
-  const std::string VERTEX_SHADER_PATH = "../resources/shaders/simple.vert";
-  const std::string FRAGMENT_SHADER_PATH = "../resources/shaders/simple.frag";
+  const std::string VERTEX_SHADER_PATH = "../resources/shaders/landscape.vert";
+  const std::string FRAGMENT_SHADER_PATH = "../resources/shaders/landscape.frag";
+  const std::string TESC_SHADER_PATH = "../resources/shaders/landscape.tesc";
+  const std::string TESE_SHADER_PATH = "../resources/shaders/landscape.tese";
 
   SimpleRender(uint32_t a_width, uint32_t a_height);
   ~SimpleRender()  { Cleanup(); };
@@ -65,6 +70,23 @@ public:
 
   VkDebugReportCallbackEXT m_debugReportCallback = nullptr;
 protected:
+  struct TerrainVertex {
+      float height;
+      float d_x;
+      float d_y;
+  };
+
+  FastNoiseLite m_noise;
+  uint32_t m_noise_grid_size = 10000;
+  float m_noise_length = 200;
+  //std::vector<uint32_t> m_terrain_indices;
+  //std::vector<TerrainVertex> m_terrain_vertices;
+  std::vector<uint32_t> m_heightmap;
+  vk_utils::VulkanImageMem m_heightmap_image{};
+  VkSampler m_heightmap_sampler = VK_NULL_HANDLE;
+  /*VkBuffer m_terrain_vertices_buffer = VK_NULL_HANDLE;
+  VkBuffer m_terrain_indices_buffer = VK_NULL_HANDLE;
+  VkDeviceMemory m_terrain_memory = VK_NULL_HANDLE;*/
 
   VkInstance       m_instance       = VK_NULL_HANDLE;
   VkCommandPool    m_commandPool    = VK_NULL_HANDLE;
@@ -98,9 +120,12 @@ protected:
   void* m_uboMappedMem = nullptr;
 
   pipeline_data_t m_basicForwardPipeline {};
+  pipeline_data_t m_tesselationForwardPipeline {};
 
   VkDescriptorSet m_dSet = VK_NULL_HANDLE;
   VkDescriptorSetLayout m_dSetLayout = VK_NULL_HANDLE;
+  VkDescriptorSet m_dSetTes = VK_NULL_HANDLE;
+  VkDescriptorSetLayout m_dSetTesLayout = VK_NULL_HANDLE;
   VkRenderPass m_screenRenderPass = VK_NULL_HANDLE; // main renderpass
 
   std::shared_ptr<vk_utils::DescriptorMaker> m_pBindings = nullptr;
@@ -139,7 +164,7 @@ protected:
   void CreateDevice(uint32_t a_deviceId);
 
   void BuildCommandBufferSimple(VkCommandBuffer cmdBuff, VkFramebuffer frameBuff,
-                                VkImageView a_targetImageView, VkPipeline a_pipeline);
+                                VkImageView a_targetImageView, VkPipeline a_pipeline, VkPipeline b_pipeline);
 
   virtual void SetupSimplePipeline();
   void CleanupPipelineAndSwapchain();
@@ -153,6 +178,10 @@ protected:
   void SetupDeviceFeatures();
   void SetupDeviceExtensions();
   void SetupValidationLayers();
+
+  void SetupLandscape();
+  void SetupHeightmapTexture();
+  void SetupTesselationPipeline();
 };
 
 

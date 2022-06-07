@@ -5,8 +5,8 @@
 #include "unpack_attributes.h"
 
 
-layout(location = 0) in vec4 vPosNorm;
-layout(location = 1) in vec4 vTexCoordAndTang;
+//layout(location = 0) in vec4 vPosNorm;
+//layout(location = 1) in vec4 vTexCoordAndTang;
 
 layout(push_constant) uniform params_t
 {
@@ -23,6 +23,8 @@ layout (location = 0 ) out VS_OUT
     vec2 texCoord;
 
 } vOut;
+
+float terrain_length = 100.0f;
 
 out gl_PerVertex { vec4 gl_Position; };
 void main(void)
