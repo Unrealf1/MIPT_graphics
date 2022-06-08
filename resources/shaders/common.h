@@ -28,6 +28,8 @@ struct UniformParams
   bool animateLightColor;
   uint grid_size;
   float landscape_length;
+  float normal_calc_eps;
+  float initial_trace_step;
 };
 
 #endif //VK_GRAPHICS_BASIC_COMMON_H

@@ -78,7 +78,7 @@ protected:
 
   FastNoiseLite m_noise;
   uint32_t m_noise_grid_size = 10000;
-  float m_noise_length = 200;
+  float m_noise_length = 120;
   //std::vector<uint32_t> m_terrain_indices;
   //std::vector<TerrainVertex> m_terrain_vertices;
   std::vector<uint32_t> m_heightmap;

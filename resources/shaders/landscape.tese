@@ -23,29 +23,31 @@ layout (location = 0) out VS_OUT
 {
     vec3 cNorm;
     vec2 texCoord;
+    vec3 wPos;
 } vOut;
 
 float calcHeight(vec2 pos)
 {
-    return textureLod(heightmap, pos / Params.landscape_length, 0).r * 15.0 - 20.0;
+    float eps = 1.0 / Params.landscape_length;
+    return textureLod(heightmap, eps + pos / (eps + Params.landscape_length), 0).r * 15.0 - 20.0;
 }
 
 vec3 calcNormal(vec2 pos)
 {
-    const float EPS = 1.f;
-    const vec2 dx = vec2(EPS/float(Params.landscape_length), 0);
-    const vec2 dy = vec2(0, EPS/float(Params.landscape_length));
+    const float eps = Params.normal_calc_eps;
+    const vec2 dx = vec2(eps, 0);
+    const vec2 dy = vec2(0, eps);
     const float r = calcHeight(pos + dx);
     const float l = calcHeight(pos - dx);
     const float u = calcHeight(pos + dy);
     const float d = calcHeight(pos - dy);
 
-    return normalize(vec3(r - l, 0.01f, d - u) / 2.f);
+    return normalize(vec3(r - l, 0.01f, d - u));
 }
 
 vec3 calcPos(vec2 pos)
 {
-    return vec3(pos.x, calcHeight(pos), pos.y);
+    return vec3(pos.x - Params.landscape_length / 2, calcHeight(pos), pos.y - Params.landscape_length / 2);
 }
 
 void main()
@@ -61,6 +63,7 @@ void main()
 
     vOut.cNorm = normalize(mat3(normalModelView) * mNorm);
     vOut.texCoord = mPos2 / Params.landscape_length;
-
+    vOut.wPos = mPos;
+    
     gl_Position = params.mProj * modelView * vec4(mPos, 1);
 }

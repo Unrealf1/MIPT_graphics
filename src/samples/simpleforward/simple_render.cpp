@@ -19,8 +19,8 @@ SimpleRender::SimpleRender(uint32_t a_width, uint32_t a_height) : m_width(a_widt
 
   m_noise.SetNoiseType(FastNoiseLite::NoiseType_Perlin);
   m_noise.SetNoiseType(FastNoiseLite::NoiseType_OpenSimplex2);
-  m_noise.SetFractalOctaves(2);
-  m_noise.SetFrequency(1.0f/m_noise_length / 2.0f);
+  m_noise.SetFractalOctaves(3);
+  m_noise.SetFrequency(1.0f/100.0f);
   m_noise.SetSeed(117);
 
 }
@@ -705,6 +705,11 @@ void SimpleRender::SetupGUIElements()
     ImGui::ColorEdit3("Meshes base color", m_uniforms.baseColor.M, ImGuiColorEditFlags_PickerHueWheel | ImGuiColorEditFlags_NoInputs);
     ImGui::Checkbox("Animate light source color", &m_uniforms.animateLightColor);
     ImGui::SliderFloat3("Light source position", m_uniforms.lightPos.M, -10.f, 10.f);
+    //ImGui::SliderFloat("Normal calc eps", &m_uniforms.normal_calc_eps, 0.0f, 1.0f);
+    m_uniforms.normal_calc_eps = 1.0f;
+    ImGui::SliderFloat("Landscape length", &m_uniforms.landscape_length, 10.0f, 1'000.0f);
+    ImGui::SliderFloat("Trace step", &m_uniforms.initial_trace_step, 0.001, 10.0f);
+    //ImGui::ColorEdit3("Light color", m_uniforms.lightColor.M, ImGuiColorEditFlags_PickerHueWheel | ImGuiColorEditFlags_NoInputs);
 
     ImGui::Text("Application average %.3f ms/frame (%.1f FPS)", 1000.0f / ImGui::GetIO().Framerate, ImGui::GetIO().Framerate);
 
@@ -791,7 +796,7 @@ void SimpleRender::SetupHeightmapTexture() {
 
     float x = 0.0f + noise_step * float(ix);
     float y = 0.0f + noise_step * float(iy);
-    float value = m_noise.GetNoise(x, y);//(y + x) / 2.0f / m_noise_length;//m_noise.GetNoise(x, y);
+    float value = (1.0 + m_noise.GetNoise(x, y)) / 2.0f;
     uint32_t discrete_value = 255 * value;
     m_heightmap.push_back(discrete_value);
   }
@@ -811,30 +816,6 @@ void SimpleRender::SetupHeightmapTexture() {
 
 void SimpleRender::SetupLandscape() {
   SetupHeightmapTexture();
-
-  /*VkDeviceSize vertexBufSize = sizeof(TerrainVertex) * m_terrain_vertices.size();
-  VkDeviceSize indexBufSize  = sizeof(uint32_t) * m_terrain_indices.size();
-  VkMemoryRequirements vertMR, idxMR; 
-  m_terrain_vertices_buffer = vk_utils::createBuffer(m_device, vertexBufSize, VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT, &vertMR);
-  m_terrain_indices_buffer = vk_utils::createBuffer(m_device, indexBufSize, VK_BUFFER_USAGE_INDEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT, &idxMR);
-
-  VkMemoryAllocateFlags allocFlags{};
-  m_terrain_memory = vk_utils::allocateAndBindWithPadding(m_device, m_physicalDevice, { m_terrain_vertices_buffer, m_terrain_indices_buffer }, allocFlags);
-
-  size_t pad = vk_utils::getPaddedSize(vertMR.size, idxMR.alignment);
-
-  VkMemoryAllocateInfo allocateInfo = {};
-  allocateInfo.sType           = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
-  allocateInfo.pNext           = nullptr;
-  allocateInfo.allocationSize  = pad + idxMR.size;
-  allocateInfo.memoryTypeIndex = vk_utils::findMemoryType(vertMR.memoryTypeBits, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, m_physicalDevice);
-
-  VK_CHECK_RESULT(vkAllocateMemory(m_device, &allocateInfo, nullptr, &m_terrain_memory));
-
-  VK_CHECK_RESULT(vkBindBufferMemory(m_device, m_terrain_vertices_buffer, m_terrain_memory, 0));
-  VK_CHECK_RESULT(vkBindBufferMemory(m_device, m_terrain_indices_buffer, m_terrain_memory, pad));
-  m_pScnMgr->GetCopyHelper()->UpdateBuffer(m_terrain_vertices_buffer, 0, m_terrain_vertices.data(), vertexBufSize);
-  m_pScnMgr->GetCopyHelper()->UpdateBuffer(m_terrain_indices_buffer, 0, m_terrain_indices.data(), indexBufSize);*/
 }
 
 
